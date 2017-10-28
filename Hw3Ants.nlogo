@@ -16,14 +16,16 @@ to setup
   set-default-shape turtles "bug"
   create-turtles population
   [ set size 2         ;; easier to see
-    set color red  ]   ;; red = not carrying food
+    set color red
+    move-to patch-at 0 (min-pycor + (nest-size / 2))]   ;; red = not carrying food
   setup-patches
   reset-ticks
 end
 
 to setup-patches
   ask patches
-  [ setup-nest
+  [ set path? false
+    setup-nest
     setup-food
     recolor-patch ]
 end
@@ -42,16 +44,20 @@ end
 to setup-food  ;; patch procedure
   ;; setup food source one on the right
   if (distancexy (0.6 * max-pxcor) 0) < 5
-  [ set food-source-number 1 ]
+  [ set food-source-number 1
+    set path? true ]
   ;; setup food source two on the lower-left
   if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 5
-  [ set food-source-number 2 ]
+  [ set food-source-number 2
+    set path? true ]
   ;; setup food source three on the upper-left
   if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 5
-  [ set food-source-number 3 ]
+  [ set food-source-number 3
+    set path? true ]
   ;; set "food" at sources to either 1 or 2, randomly
   if food-source-number > 0
-  [ set food one-of [1 2] ]
+  [ set food one-of [1 2]
+    set path? true]
 end
 
 to recolor-patch  ;; patch procedure
@@ -63,7 +69,9 @@ to recolor-patch  ;; patch procedure
       if food-source-number = 2 [ set pcolor sky  ]
       if food-source-number = 3 [ set pcolor blue ] ]
     ;; scale color to show chemical concentration
-    [ set pcolor scale-color green chemical 0.1 5 ] ]
+    [ ifelse path?
+      [ set pcolor yellow]
+      [set pcolor scale-color green chemical 0.1 5 ] ]]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;
@@ -76,8 +84,7 @@ to go  ;; forever button
     ifelse color = red
     [ look-for-food  ]       ;; not carrying food? look for it
     [ return-to-nest ]       ;; carrying food? take it back to nest
-    wiggle
-    fd 1 ]
+    wiggle ]
   diffuse chemical (diffusion-rate / 100)
   ask patches
   [ set chemical chemical * (100 - evaporation-rate) / 100  ;; slowly evaporate chemical
@@ -130,7 +137,16 @@ end
 to wiggle  ;; turtle procedure
   rt random 40
   lt random 40
-  if not can-move? 1 [ rt 180 ]
+  let rotate false
+  ifelse (not can-move? 1)
+  [ set rotate true ]
+  [ask patch-ahead 1
+  [ ifelse (not path?) and (not nest?) and (not (food > 0))
+    [ set rotate true ]
+    [ set rotate false ]]
+  ifelse rotate
+  [ rt 90 ]
+    [ fd 1]]
 end
 
 to-report nest-scent-at-angle [angle]
@@ -149,10 +165,12 @@ to draw-path
   while [mouse-down?]
     [ ask patch mouse-xcor mouse-ycor
         [if (not nest?) and (food < 1)
-        [set pcolor white ]
+        [ set path? true
+          set pcolor yellow ]
           ask neighbors
           [ if (not nest?) and (food < 1)
-            [set pcolor white]]]
+            [set path? true
+             set pcolor yellow]]]
       display ]
 end
 
@@ -260,7 +278,7 @@ population
 population
 0.0
 200.0
-125.0
+200.0
 1.0
 1
 NIL
