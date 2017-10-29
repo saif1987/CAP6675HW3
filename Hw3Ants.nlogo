@@ -140,16 +140,15 @@ to return-to-nest  ;; turtle procedure
       [ set cur-prev-step 0
         set cont-loop false ]
       let next-patch item cur-prev-step previous-steps
-
-      if not (color = blue)
-      [ask next-patch
-        [ set chemical chemical + chem-amount
-          set chem-amount chem-amount * .75]]
+      let ant-color color
       ask patch-here
-      [ if (distance next-patch >= 1)
-          [set cont-loop false]]]
+      [ if (distance next-patch >= return-speed)
+          [set cont-loop false
+           if not (ant-color = blue)
+           [  set chemical chemical + chem-amount
+              set chem-amount chem-amount * .75]]]]
     set heading towards item cur-prev-step previous-steps
-    move-to item cur-prev-step previous-steps]
+  move-to item cur-prev-step previous-steps]
 end
 
 to brood-or-forage-worker
@@ -346,7 +345,7 @@ evaporation-rate
 evaporation-rate
 0.0
 99.0
-10.0
+7.0
 1.0
 1
 NIL
@@ -539,6 +538,17 @@ INPUTBOX
 367
 food-amount
 300.0
+1
+0
+Number
+
+INPUTBOX
+805
+384
+961
+444
+return-speed
+2.0
 1
 0
 Number
