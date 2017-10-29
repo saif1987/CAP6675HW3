@@ -152,8 +152,8 @@ end
 
 to brood-or-forage-worker
   ifelse brood-points = forage-points
-  [ set brood-worker? one-of [true false]]
-  [ set brood-worker? brood-points < forage-points]
+  [ ]
+  [ ]
 
 end
 
