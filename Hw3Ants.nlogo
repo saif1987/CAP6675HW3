@@ -220,7 +220,7 @@ to-report chemical-scent-at-angle [angle]
   let p patch-right-and-ahead angle 1
   let scent-total 0
   loop [
-    ifelse p = nobody or not [path?] of p []
+    ifelse p = nobody or not [path?] of p [report scent-total]
     [if ((brood-worker? and [nest?] of p) or (not brood-worker? and [forage?] of p) and not [nest-entrance?] of p)
     [set scent-total scent-total + [chemical] of p]]
 
@@ -377,7 +377,7 @@ population
 population
 0.0
 200.0
-159.0
+200.0
 1.0
 1
 NIL
@@ -537,7 +537,7 @@ INPUTBOX
 960
 367
 food-amount
-300.0
+10.0
 1
 0
 Number

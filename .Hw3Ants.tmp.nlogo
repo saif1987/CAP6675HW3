@@ -140,11 +140,11 @@ to return-to-nest  ;; turtle procedure
       [ set cur-prev-step 0
         set cont-loop false ]
       let next-patch item cur-prev-step previous-steps
-
+      let ant-color color
       ask patch-here
       [ if (distance next-patch >= return-speed)
           [set cont-loop false
-           if not (color = blue)
+           if not (ant-color = blue)
            [  set chemical chemical + chem-amount
               set chem-amount chem-amount * .75]]]]
     set heading towards item cur-prev-step previous-steps
@@ -220,7 +220,7 @@ to-report chemical-scent-at-angle [angle]
   let p patch-right-and-ahead angle 1
   let scent-total 0
   loop [
-    ifelse p = nobody or not [path?] of p []
+    ifelse p = nobody or not [path?] of p [r]
     [if ((brood-worker? and [nest?] of p) or (not brood-worker? and [forage?] of p) and not [nest-entrance?] of p)
     [set scent-total scent-total + [chemical] of p]]
 
@@ -377,7 +377,7 @@ population
 population
 0.0
 200.0
-159.0
+200.0
 1.0
 1
 NIL
@@ -537,7 +537,7 @@ INPUTBOX
 960
 367
 food-amount
-300.0
+10.0
 1
 0
 Number
