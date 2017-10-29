@@ -128,8 +128,9 @@ to return-to-nest  ;; turtle procedure
     brood-or-forage-worker
     move-to patch-at nest-entrance-center-x nest-entrance-center-y
     set color red ]
-  [ if not (color = blue)
-    [set chemical chemical + 60]  ;; drop some chemical
+  [ let chem-amount 500
+    if not (color = blue)
+    [set chemical chemical + chem-amount]  ;; drop some chemical
     if (cur-prev-step <= 0)
     [ set cur-prev-step length previous-steps - 1]
     let cont-loop true
@@ -142,7 +143,8 @@ to return-to-nest  ;; turtle procedure
 
       if not (color = blue)
       [ask next-patch
-        [ set chemical chemical + 60]]
+        [ set chemical chemical + chem-amount
+          set chem-amount chem-amount * .9]]
       ask patch-here
       [ if (distance next-patch >= 1)
           [set cont-loop false]]]
@@ -152,8 +154,8 @@ end
 
 to brood-or-forage-worker
   ifelse brood-points = forage-points
-  [ ]
-  [ ]
+  [ set brood-worker? one-of [true false]]
+  [ set brood-worker? brood-points < forage-points]
 
 end
 
@@ -188,8 +190,8 @@ to uphill-chemical  ;; turtle procedure
 end
 
 to wiggle  ;; turtle procedure
-;;  rt random 40
-;;  lt random 40
+  rt random 40
+  lt random 40
   let rotate false
   let is-brood-worker brood-worker?
   ifelse (not can-move? 1)
@@ -344,7 +346,7 @@ evaporation-rate
 evaporation-rate
 0.0
 99.0
-6.0
+10.0
 1.0
 1
 NIL
@@ -536,7 +538,7 @@ INPUTBOX
 960
 367
 food-amount
-100.0
+300.0
 1
 0
 Number
