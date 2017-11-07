@@ -41,7 +41,7 @@ to setup
   create-turtles population
   [ set size 2         ;; easier to see
     set color red
-    brood-or-forage-worker
+    set brood-worker? random-float 100.0 > initial-forage-assignment-rate
     let here-patch patch-here
     reset-previous-steps
     set cur-prev-step 0
@@ -793,6 +793,21 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+792
+458
+1005
+491
+initial-forage-assignment-rate
+initial-forage-assignment-rate
+0
+100
+50.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
