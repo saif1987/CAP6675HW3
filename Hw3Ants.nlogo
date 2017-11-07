@@ -274,6 +274,213 @@ to erase-food
     display]
 end
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;  simulation saving procedures  ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; saves patch info, turtle info, and user settings to file
+to save-scenario
+  let file user-new-file
+  if (is-string? file) [
+    if (file-exists? file) [
+    file-close
+    file-delete file
+    ]
+    file-open file
+    write-scenario
+    file-close
+  ]
+end
+
+;; called from save-scenario to write stuff to file
+to write-scenario
+  ;; write tick number
+  file-print ticks
+
+  ;; write view dimensions
+  file-print min-pycor
+  file-print max-pycor
+  file-print min-pxcor
+  file-print max-pycor
+
+  ;; write globals
+  file-print nest-entrance-center-x
+  file-print nest-entrance-center-y
+  file-print brood-points
+  file-print forage-points
+
+  ;; write every patch's info
+  let yctr min-pycor
+  while [yctr <= max-pycor] [
+    let xctr min-pxcor
+    while [xctr <= max-pxcor] [
+      file-print get-patch-str yctr xctr
+      set xctr (xctr + 1)
+    ]
+    set yctr (yctr + 1)
+  ]
+
+  ;; write every turtle's info
+  let num-ants count turtles
+  file-print num-ants
+  let ant-ctr 0
+  while [ant-ctr < num-ants] [
+    file-print get-ant-str ant-ctr
+    set ant-ctr (ant-ctr + 1)
+  ]
+end
+
+;; reports a string with all attributes of specified patch
+to-report get-patch-str [y-num x-num]
+  let cur-patch (patch y-num x-num)
+  report (word
+    ([chemical] of cur-patch) " "
+    ([food-or-larvae?] of cur-patch) " "
+    ([food-or-larvae-amount] of cur-patch) " "
+    ([nest?] of cur-patch) " "
+    ([forage?] of cur-patch) " "
+    ([path?] of cur-patch) " "
+    ([nest-entrance?] of cur-patch)
+  )
+end
+
+;; reports a string with all attributes of specified turtle
+to-report get-ant-str [who-num]
+  show who-num
+  let cur-ant turtle who-num
+
+  ;; must convert previous-steps list into a string
+  let p-ctr 0
+  let prev-steps-word ""
+  let prev-steps [previous-steps] of cur-ant
+  while [p-ctr < length prev-steps] [
+    set prev-steps-word (word
+      prev-steps-word " "
+      [pxcor] of (item p-ctr prev-steps) " "
+      [pycor] of (item p-ctr prev-steps)
+    )
+    set p-ctr (p-ctr + 1)
+  ]
+
+  report (word
+    [size] of cur-ant " "
+    [color] of cur-ant " "
+    [xcor] of cur-ant " "
+    [ycor] of cur-ant " "
+    length prev-steps " "
+    prev-steps-word " "
+    [cur-prev-step] of cur-ant " "
+    [own-brood-points] of cur-ant " "
+    [own-forage-points] of cur-ant " "
+    [brood-worker?] of cur-ant
+  )
+end
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;  simulation loading procedures  ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; loads patch info, turtle info, and user settings from file
+to load-scenario
+  let infile user-file
+  if (infile != false) [
+    file-open infile
+    init-sim-from-file
+    file-close
+  ]
+end
+
+;; called from load-scenario to initialize simulation from stuff from file
+to init-sim-from-file
+  clear-all
+  set-default-shape turtles "bug"
+  check-header
+  init-globals
+  init-patches-from-file
+  init-turtles-from-file
+end
+
+;; called from load-scenario to check if file info from file matches current sim
+to check-header
+  reset-ticks
+  tick-advance file-read
+  let min-y file-read
+  let max-y file-read
+  let min-x file-read
+  let max-x file-read
+  if (min-y != min-pycor
+    or max-y != max-pycor
+    or min-x != min-pxcor
+    or max-x != max-pxcor) [
+    user-message "View size of file scenario doesn't match current view"
+    stop
+  ]
+end
+
+to init-globals
+  set nest-entrance-center-x file-read
+  set nest-entrance-center-y file-read
+  set brood-points file-read
+  set forage-points file-read
+end
+
+;; initialize patches from file
+to init-patches-from-file
+  let yctr min-pycor
+  while [yctr <= max-pycor] [
+    let xctr min-pxcor
+    while [xctr <= max-pxcor] [
+      ;; initialize patch
+      ask patch yctr xctr [
+        set chemical file-read
+        set food-or-larvae? file-read
+        set food-or-larvae-amount file-read
+        set nest? file-read
+        set forage? file-read
+        set path? file-read
+        set nest-entrance? file-read
+      ]
+      set xctr (xctr + 1)
+    ]
+    set yctr (yctr + 1)
+  ]
+  ask patches [
+    recolor-patch
+  ]
+end
+
+;; initialize turtles from file
+to init-turtles-from-file
+  let num-ants file-read
+  create-turtles num-ants
+  let ant-ctr 0
+  while [ant-ctr < num-ants] [
+    show ant-ctr
+    ;; initialize turtle
+    ask turtle ant-ctr [
+      set size file-read
+      set color file-read
+      setxy file-read file-read
+      ;set previous-steps file-read
+      let num-steps file-read
+      set previous-steps list (patch file-read file-read) (patch file-read file-read)
+      while [num-steps > 2] [
+        ;set previous-steps list center-patch center-patch
+        ;set previous-steps lput (patch-ahead 1) previous-steps
+        set previous-steps lput (patch file-read file-read) previous-steps
+        set num-steps (num-steps - 1)
+      ]
+      set cur-prev-step file-read
+      set own-brood-points file-read
+      set own-forage-points file-read
+      set brood-worker? file-read
+    ]
+    set ant-ctr (ant-ctr + 1)
+  ]
+end
+
 ; Copyright 1997 Uri Wilensky.
 ; See Info tab for full copyright and license.
 @#$#@#$#@
@@ -552,6 +759,40 @@ return-speed
 1
 0
 Number
+
+BUTTON
+9
+390
+114
+423
+NIL
+load-scenario
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+9
+430
+115
+463
+NIL
+save-scenario
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
