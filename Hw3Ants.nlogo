@@ -584,7 +584,7 @@ population
 population
 0.0
 1000
-1000.0
+126.0
 1.0
 1
 NIL
@@ -803,11 +803,30 @@ initial-forage-assignment-rate
 initial-forage-assignment-rate
 0
 100
-50.0
+57.0
 1
 1
 NIL
 HORIZONTAL
+
+PLOT
+991
+163
+1191
+313
+# Ants in Brood vs Forage
+ticks
+Brood vs  Forage
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"brood" 1.0 0 -10402772 true "" "plot count turtles with [brood-worker?]"
+"forage" 1.0 0 -13840069 true "" "plot count turtles with [not brood-worker?]"
 
 @#$#@#$#@
 ## WHAT IS IT?
