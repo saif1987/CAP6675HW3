@@ -78,12 +78,12 @@ to recolor-patch  ;; patch procedure
       if forage?
       [ set pcolor 5]]
     ;; scale color to show chemical concentration
-    [ ifelse path?
+    [ if path?
       [ if forage? [set pcolor 66]
         if nest? [set pcolor 36]]
-      [ if(chemical > 0)
-      [set pcolor scale-color magenta chemical 0.1 5
-        if pcolor > 129 [set pcolor pcolor - 1]]]]
+        if(chemical > 1)
+        [set pcolor scale-color magenta chemical 0.1 5
+        if pcolor > 129 [set pcolor pcolor - 1]]]
       if not path? and (chemical <= 0 or pcolor < 122)
        [if nest? [set pcolor 33]
         if forage? [set pcolor 52]]]
@@ -128,7 +128,7 @@ to return-to-nest  ;; turtle procedure
     brood-or-forage-worker
     move-to patch-at nest-entrance-center-x nest-entrance-center-y
     set color red ]
-  [ let chem-amount 500
+  [ let chem-amount 5000
     if not (color = blue)
     [set chemical chemical + chem-amount]  ;; drop some chemical
     if (cur-prev-step <= 0)
@@ -146,7 +146,7 @@ to return-to-nest  ;; turtle procedure
           [set cont-loop false
            if not (ant-color = blue)
            [  set chemical chemical + chem-amount
-              set chem-amount chem-amount * .75]]]]
+              set chem-amount chem-amount * .99]]]]
     set heading towards item cur-prev-step previous-steps
   move-to item cur-prev-step previous-steps]
 end
@@ -166,8 +166,8 @@ to look-for-food  ;; turtle procedure
     rt 180                   ;; and turn around
     stop ]
   ;; go in the direction where the chemical smell is strongest
-  if (chemical >= 0.05) and (chemical < 2)
-  [ uphill-chemical ]
+  ;;if (chemical >= 0.05) and (chemical < 2)
+  uphill-chemical
 end
 
 ;; sniff left and right, and go where the strongest smell is
@@ -223,10 +223,11 @@ to-report chemical-scent-at-angle [angle]
     ifelse p = nobody or not [path?] of p [report scent-total]
     [if ((brood-worker? and [nest?] of p) or (not brood-worker? and [forage?] of p) and not [nest-entrance?] of p)
     [set scent-total scent-total + [chemical] of p]]
-
+    if [food-or-larvae?] of p
+    [ set scent-total scent-total + 9999999]
     set p patch-right-and-ahead angle 1
     set i i + 1
-    if (i > 5) [report scent-total]
+    if (i > 7) [report scent-total]
   ]
 end
 
@@ -537,7 +538,7 @@ diffusion-rate
 diffusion-rate
 0.0
 99.0
-5.0
+0.0
 1.0
 1
 NIL
@@ -552,7 +553,7 @@ evaporation-rate
 evaporation-rate
 0.0
 99.0
-7.0
+33.0
 1.0
 1
 NIL
@@ -584,7 +585,7 @@ population
 population
 0.0
 1000
-126.0
+371.0
 1.0
 1
 NIL
@@ -744,7 +745,7 @@ INPUTBOX
 960
 367
 food-amount
-10.0
+10000.0
 1
 0
 Number
