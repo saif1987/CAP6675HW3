@@ -11,16 +11,21 @@ patches-own [
 turtles-own [
   previous-steps
   cur-prev-step
-
+  own-brood-forage-points
   own-brood-points
   own-forage-points
-
+  normal-color
   brood-worker?
+  brood-bucket
+  forage-bucket
 ]
 
 globals [
   nest-entrance-center-x
   nest-entrance-center-y
+
+  total-forage-buckets
+  total-brood-buckets
 
   brood-points
   forage-points
@@ -35,12 +40,13 @@ to setup
   set-default-shape turtles "bug"
   set nest-entrance-center-x 0
   set nest-entrance-center-y (min-pycor + (nest-size))
-  set brood-points 0
-  set forage-points 0
+  set brood-points 1
+  set forage-points 1
 
   create-turtles population
   [ set size 2         ;; easier to see
-    set color red
+    set normal-color 9
+    set color normal-color
     set brood-worker? random-float 100.0 > initial-forage-assignment-rate
     let here-patch patch-here
     reset-previous-steps
@@ -81,9 +87,10 @@ to recolor-patch  ;; patch procedure
     [ if path?
       [ if forage? [set pcolor 66]
         if nest? [set pcolor 36]]
-        if(chemical > 1)
+        ifelse(chemical > 1)
         [set pcolor scale-color magenta chemical 0.1 5
-        if pcolor > 129 [set pcolor pcolor - 1]]]
+        if pcolor > 129 [set pcolor pcolor - 2]]
+        [ set chemical 0]]
       if not path? and (chemical <= 0 or pcolor < 122)
        [if nest? [set pcolor 33]
         if forage? [set pcolor 52]]]
@@ -94,24 +101,54 @@ end
 ;;;;;;;;;;;;;;;;;;;;;
 
 to go  ;; forever button
+  set-buckets
   ask turtles
   [ if who >= ticks [ stop ] ;; delay initial departure
-    ifelse color = red
-    [ look-for-food
-      wiggle ]       ;; not carrying food? look for it
-    [ return-to-nest ]]       ;; carrying food? take it back to nest
- ;;   wiggle ]
-  diffuse chemical (diffusion-rate / 100)
+    ifelse not (color = black or color = yellow)
+    [ look-for-food ]
+    [ return-to-nest ]]
   ask patches
   [ set chemical chemical * (100 - evaporation-rate) / 100  ;; slowly evaporate chemical
     recolor-patch ]
+
   tick
+end
+
+to set-buckets
+  set total-forage-buckets 0
+  set total-brood-buckets 0
+  let forage-ordered sort-on [own-brood-forage-points] turtles with [own-brood-forage-points >= 0]
+  let brood-ordered sort-on [(- own-brood-forage-points)] turtles with [own-brood-forage-points < 0]
+
+  let cur-size-forage 0
+  foreach forage-ordered
+  [cur ->
+    ask cur
+    [ set brood-bucket 0
+      ifelse own-brood-forage-points = 0
+      [ set forage-bucket 0 ]
+      [ ifelse own-brood-forage-points > cur-size-forage
+       [ set total-forage-buckets total-forage-buckets + 1
+         set forage-bucket total-forage-buckets
+         set cur-size-forage cur-size-forage + 1]
+        [ set forage-bucket total-forage-buckets]]]
+  ]
+  let cur-size-brood 0
+  foreach brood-ordered
+  [cur ->
+    ask cur
+    [ set forage-bucket 0
+      ifelse own-brood-forage-points < cur-size-brood
+      [ set total-brood-buckets total-brood-buckets + 1
+        set brood-bucket total-brood-buckets
+        set cur-size-brood cur-size-brood - 1]
+      [ set brood-bucket total-brood-buckets]]
+  ]
 end
 
 to reset-previous-steps
   let center-patch (patch-at nest-entrance-center-x nest-entrance-center-y)
   set previous-steps list center-patch center-patch
-;;  set previous-steps remove (item 1 previous-steps) previous-steps
 end
 
 to return-to-nest  ;; turtle procedure
@@ -119,17 +156,19 @@ to return-to-nest  ;; turtle procedure
   [ ;; drop food and head out again
     reset-previous-steps
     set cur-prev-step 0
-    if not (color = blue)
+    if not (color = black)
     [ifelse brood-worker?
-     [ set own-brood-points own-brood-points + 1
+     [ set own-brood-forage-points  own-brood-forage-points - 1
+       set own-brood-points own-brood-points + 1
        set brood-points brood-points + 1]
-     [ set own-forage-points own-forage-points + 1
+     [ set own-brood-forage-points own-brood-forage-points + 1
+       set own-forage-points own-forage-points + 1
        set forage-points forage-points + 1]]
     brood-or-forage-worker
     move-to patch-at nest-entrance-center-x nest-entrance-center-y
-    set color red ]
+    set color normal-color ]
   [ let chem-amount 5000
-    if not (color = blue)
+    if not (color = black)
     [set chemical chemical + chem-amount]  ;; drop some chemical
     if (cur-prev-step <= 0)
     [ set cur-prev-step length previous-steps - 1]
@@ -144,23 +183,33 @@ to return-to-nest  ;; turtle procedure
       ask patch-here
       [ if (distance next-patch >= return-speed)
           [set cont-loop false
-           if not (ant-color = blue)
+           if not (ant-color = black)
            [  set chemical chemical + chem-amount
-              set chem-amount chem-amount * .99]]]]
+              set chem-amount chem-amount * .50]]]]
     set heading towards item cur-prev-step previous-steps
   move-to item cur-prev-step previous-steps]
 end
 
 to brood-or-forage-worker
-  ifelse brood-points = forage-points
-  [ set brood-worker? one-of [true false]]
-  [ set brood-worker? brood-points < forage-points]
+  set brood-worker? ((random-float 100.0) > (100 * (brood-points / (brood-points + forage-points))))
+  if total-brood-buckets < 8
+  [ set total-brood-buckets 8]
+  if total-forage-buckets < 8
+  [ set total-forage-buckets 8]
 
+  if brood-bucket > 0
+  [ let stay-brood max-resistance / brood-bucket * total-brood-buckets
+    if random-float 100.0 < stay-brood
+    [ set brood-worker? true]]
+  if forage-bucket > 0
+  [ let stay-forage max-resistance / forage-bucket * total-forage-buckets
+    if random-float 100.0 < stay-forage
+    [ set brood-worker? false]]
 end
 
 to look-for-food  ;; turtle procedure
   if food-or-larvae? = true
-  [ set color orange + 1     ;; pick up food
+  [ set color yellow    ;; pick up food
     set food-or-larvae-amount food-or-larvae-amount - 1        ;; and reduce the food source
     if food-or-larvae-amount <= 0 [set food-or-larvae? false]
     rt 180                   ;; and turn around
@@ -172,7 +221,7 @@ end
 
 ;; sniff left and right, and go where the strongest smell is
 to uphill-chemical  ;; turtle procedure
-  let scent-list [0 45 -45 75 -75]
+  let scent-list [0 -20 -45 -60 -20 45 60]
   if nest-entrance?
   [set scent-list [0 45 -45 75 -75 90 -90 120 -120 145 -145 180]]
 
@@ -184,13 +233,18 @@ to uphill-chemical  ;; turtle procedure
      if chem-num > largest
      [ set largest chem-num
        set largest-angle x]]
-
-  rt largest-angle
+  ifelse largest <= 0
+  [wiggle true]
+  [rt largest-angle
+   wiggle false]
 end
 
-to wiggle  ;; turtle procedure
-  rt random 40
-  lt random 40
+to wiggle [move?] ;; turtle procedure
+  ifelse move?
+  [ rt random 40
+    lt random 40]
+  [ rt random 5
+    lt random 5]
   let rotate false
   let is-brood-worker brood-worker?
   ifelse (not can-move? 1)
@@ -205,13 +259,13 @@ to wiggle  ;; turtle procedure
         [ifelse forage?
           [set rotate false]
           [set rotate true]] ]]] ;; set rotate false
-  ifelse rotate
+  ifelse rotate and move?
   [ let rand random 75
     set rand rand * one-of [-1 1]
     rt rand]
   [ set previous-steps lput (patch-ahead 1) previous-steps
     if (length previous-steps >= max-steps)
-    [ set color blue]
+    [ set color black]
     fd 1]
 end
 
@@ -222,12 +276,13 @@ to-report chemical-scent-at-angle [angle]
   loop [
     ifelse p = nobody or not [path?] of p [report scent-total]
     [if ((brood-worker? and [nest?] of p) or (not brood-worker? and [forage?] of p) and not [nest-entrance?] of p)
-    [set scent-total scent-total + [chemical] of p]]
-    if [food-or-larvae?] of p
+    [ifelse [food-or-larvae?] of p
     [ set scent-total scent-total + 9999999]
+    [ set scent-total scent-total + [chemical] of p]]]
+
     set p patch-right-and-ahead angle 1
     set i i + 1
-    if (i > 7) [report scent-total]
+    if (i > smell-range) [report scent-total]
   ]
 end
 
@@ -531,21 +586,6 @@ NIL
 
 SLIDER
 31
-106
-221
-139
-diffusion-rate
-diffusion-rate
-0.0
-99.0
-0.0
-1.0
-1
-NIL
-HORIZONTAL
-
-SLIDER
-31
 141
 221
 174
@@ -553,7 +593,7 @@ evaporation-rate
 evaporation-rate
 0.0
 99.0
-33.0
+6.0
 1.0
 1
 NIL
@@ -585,7 +625,7 @@ population
 population
 0.0
 1000
-371.0
+174.0
 1.0
 1
 NIL
@@ -642,7 +682,7 @@ INPUTBOX
 956
 291
 max-steps
-300.0
+100.0
 1
 0
 Number
@@ -745,7 +785,7 @@ INPUTBOX
 960
 367
 food-amount
-10000.0
+1000.0
 1
 0
 Number
@@ -828,6 +868,32 @@ false
 PENS
 "brood" 1.0 0 -10402772 true "" "plot count turtles with [brood-worker?]"
 "forage" 1.0 0 -13840069 true "" "plot count turtles with [not brood-worker?]"
+
+INPUTBOX
+983
+333
+1139
+393
+smell-range
+5.0
+1
+0
+Number
+
+SLIDER
+990
+408
+1162
+442
+max-resistance
+max-resistance
+0
+100
+11.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
