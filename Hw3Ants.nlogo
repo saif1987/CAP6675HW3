@@ -270,9 +270,11 @@ to uphill-chemical  ;; turtle procedure
 end
 
 to wiggle [move?] ;; turtle procedure
-  if move?
+  ifelse move?
   [ rt random 40
     lt random 40]
+  [ rt random 2
+    lt random 2]
   let rotate false
   let is-brood-worker brood-worker?
   ifelse (not can-move? 1)
@@ -631,7 +633,7 @@ evaporation-rate
 evaporation-rate
 0.0
 99.0
-6.0
+0.0
 1.0
 1
 NIL
@@ -663,7 +665,7 @@ population
 population
 0.0
 1000
-67.0
+1000.0
 1.0
 1
 NIL
@@ -720,7 +722,7 @@ INPUTBOX
 956
 291
 max-steps
-300.0
+10000.0
 1
 0
 Number
@@ -823,7 +825,7 @@ INPUTBOX
 960
 367
 food-amount
-1000.0
+10.0
 1
 0
 Number
@@ -834,7 +836,7 @@ INPUTBOX
 961
 444
 return-speed
-2.0
+1.0
 1
 0
 Number
@@ -913,7 +915,7 @@ INPUTBOX
 1139
 393
 smell-range
-5.0
+50.0
 1
 0
 Number
@@ -927,7 +929,7 @@ max-resistance
 max-resistance
 0
 100
-33.0
+30.0
 1
 1
 NIL
