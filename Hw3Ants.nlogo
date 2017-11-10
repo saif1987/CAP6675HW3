@@ -270,11 +270,9 @@ to uphill-chemical  ;; turtle procedure
 end
 
 to wiggle [move?] ;; turtle procedure
-  ifelse move?
+  if move?
   [ rt random 40
     lt random 40]
-  [ rt random 5
-    lt random 5]
   let rotate false
   let is-brood-worker brood-worker?
   ifelse (not can-move? 1)
@@ -725,7 +723,7 @@ INPUTBOX
 956
 291
 max-steps
-100.0
+300.0
 1
 0
 Number
