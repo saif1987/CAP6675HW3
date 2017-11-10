@@ -301,9 +301,6 @@ to-report chemical-scent-at-angle [angle]
   let i 0
   let p patch-right-and-ahead angle 1
   let scent-total 0
-  let smell-r smell-range
-  if nest-entrance?
-  [ set smell-r 15]
   loop [
     ifelse p = nobody or not [path?] of p [report scent-total]
     [if ((brood-worker? and [nest?] of p) or (not brood-worker? and [forage?] of p) and not [nest-entrance?] of p)
@@ -313,7 +310,7 @@ to-report chemical-scent-at-angle [angle]
 
     set p patch-right-and-ahead angle 1
     set i i + 1
-    if (i > smell-r) [report scent-total]
+    if (i > smell-range) [report scent-total]
   ]
 end
 
