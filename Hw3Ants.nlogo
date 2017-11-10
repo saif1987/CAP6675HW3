@@ -29,6 +29,9 @@ globals [
 
   brood-points
   forage-points
+
+  brood-colors
+  forage-colors
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -43,9 +46,12 @@ to setup
   set brood-points 1
   set forage-points 1
 
+  set brood-colors (list (gray + 4) (orange + 3) (orange + 2) (orange + 1) (orange))
+  set forage-colors (list (gray + 4) (turquoise + 3) (turquoise + 2) (turquoise + 1) (turquoise))
+
   create-turtles population
   [ set size 2         ;; easier to see
-    set normal-color 9
+    set normal-color gray + 4
     set color normal-color
     set brood-worker? random-float 100.0 > initial-forage-assignment-rate
     let here-patch patch-here
@@ -192,17 +198,41 @@ end
 
 to brood-or-forage-worker
   set brood-worker? ((random-float 100.0) > (100 * (brood-points / (brood-points + forage-points))))
+
   if total-brood-buckets < 8
   [ set total-brood-buckets 8]
   if total-forage-buckets < 8
   [ set total-forage-buckets 8]
 
+
   if brood-bucket > 0
-  [ let stay-brood max-resistance / brood-bucket * total-brood-buckets
+  [ let col-for-bucket total-brood-buckets / 4
+    let extra total-brood-buckets mod 4
+    let bucket-color-i 0
+    let cont true
+    while [cont][
+      if brood-bucket <= (extra + (bucket-color-i * col-for-bucket))
+      [ set normal-color item bucket-color-i brood-colors
+        set cont false ]
+      set bucket-color-i bucket-color-i + 1
+    ]
+    let stay-brood (max-resistance / brood-bucket * total-brood-buckets)
     if random-float 100.0 < stay-brood
     [ set brood-worker? true]]
+
+
   if forage-bucket > 0
-  [ let stay-forage max-resistance / forage-bucket * total-forage-buckets
+  [ let col-for-bucket total-forage-buckets / 4
+    let extra total-forage-buckets mod 4
+    let bucket-color-i 0
+    let cont true
+    while [cont] [
+      if forage-bucket <= (extra + (bucket-color-i * col-for-bucket))
+      [ set normal-color item bucket-color-i forage-colors
+        set cont false ]
+      set bucket-color-i bucket-color-i + 1
+    ]
+    let stay-forage (max-resistance / forage-bucket * total-forage-buckets)
     if random-float 100.0 < stay-forage
     [ set brood-worker? false]]
 end
@@ -273,6 +303,9 @@ to-report chemical-scent-at-angle [angle]
   let i 0
   let p patch-right-and-ahead angle 1
   let scent-total 0
+  let smell-r smell-range
+  if nest-entrance?
+  [ set smell-r 15]
   loop [
     ifelse p = nobody or not [path?] of p [report scent-total]
     [if ((brood-worker? and [nest?] of p) or (not brood-worker? and [forage?] of p) and not [nest-entrance?] of p)
@@ -282,7 +315,7 @@ to-report chemical-scent-at-angle [angle]
 
     set p patch-right-and-ahead angle 1
     set i i + 1
-    if (i > smell-range) [report scent-total]
+    if (i > smell-r) [report scent-total]
   ]
 end
 
@@ -365,6 +398,8 @@ to write-scenario
   file-print nest-entrance-center-y
   file-print brood-points
   file-print forage-points
+  file-print brood-colors
+  file-print forage-colors
 
   ;; write every patch's info
   let yctr min-pycor
@@ -427,9 +462,12 @@ to-report get-ant-str [who-num]
     length prev-steps " "
     prev-steps-word " "
     [cur-prev-step] of cur-ant " "
+    [own-brood-forage-points] of cur-ant " "
     [own-brood-points] of cur-ant " "
     [own-forage-points] of cur-ant " "
-    [brood-worker?] of cur-ant
+    [brood-worker?] of cur-ant " "
+    [brood-bucket] of cur-ant " "
+    [forage-bucket] of cur-ant
   )
 end
 
@@ -480,6 +518,8 @@ to init-globals
   set nest-entrance-center-y file-read
   set brood-points file-read
   set forage-points file-read
+  set brood-colors file-read
+  set forage-colors file-read
 end
 
 ;; initialize patches from file
@@ -529,9 +569,12 @@ to init-turtles-from-file
         set num-steps (num-steps - 1)
       ]
       set cur-prev-step file-read
+      set own-brood-forage-points file-read
       set own-brood-points file-read
       set own-forage-points file-read
       set brood-worker? file-read
+      set brood-bucket file-read
+      set forage-bucket file-read
     ]
     set ant-ctr (ant-ctr + 1)
   ]
@@ -625,7 +668,7 @@ population
 population
 0.0
 1000
-174.0
+67.0
 1.0
 1
 NIL
@@ -884,12 +927,12 @@ SLIDER
 990
 408
 1162
-442
+441
 max-resistance
 max-resistance
 0
 100
-11.0
+33.0
 1
 1
 NIL
