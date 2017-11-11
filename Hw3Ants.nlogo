@@ -187,11 +187,12 @@ to return-to-nest  ;; turtle procedure
       let next-patch item cur-prev-step previous-steps
       let ant-color color
       ask patch-here
-      [ if (distance next-patch >= return-speed)
+      [ if not (next-patch = nobody)
+        [ if (distance next-patch >= return-speed)
           [set cont-loop false
            if not (ant-color = black)
            [  set chemical chemical + chem-amount
-              set chem-amount chem-amount * .50]]]]
+              set chem-amount chem-amount * .50]]]]]
     set heading towards item cur-prev-step previous-steps
   move-to item cur-prev-step previous-steps]
 end
@@ -825,7 +826,7 @@ INPUTBOX
 960
 367
 food-amount
-10.0
+1000.0
 1
 0
 Number
@@ -884,7 +885,7 @@ initial-forage-assignment-rate
 initial-forage-assignment-rate
 0
 100
-57.0
+51.0
 1
 1
 NIL
@@ -915,7 +916,7 @@ INPUTBOX
 1139
 393
 smell-range
-50.0
+5.0
 1
 0
 Number
@@ -929,7 +930,7 @@ max-resistance
 max-resistance
 0
 100
-30.0
+42.0
 1
 1
 NIL
