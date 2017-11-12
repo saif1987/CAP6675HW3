@@ -255,11 +255,17 @@ to brood-or-forage-worker
   ifelse brood-worker? = true
   [
     if colony-need > foraging-threshold
-    [set change-to-forage? true]
+    [set change-to-forage? true
+      if brood-bucket = 0
+      [set brood-worker? false ]
+    ]
   ]
   [
     if colony-need < brooding-threshold
-    [set change-to-brood? true]
+    [set change-to-brood? true
+       if forage-bucket = 0
+      [set brood-worker? true ]
+    ]
   ]
 
   if brood-bucket > 0 and change-to-forage? = true
@@ -1040,7 +1046,7 @@ max-resistance
 max-resistance
 0
 100
-20.0
+50.0
 1
 1
 NIL
@@ -1054,7 +1060,7 @@ CHOOSER
 Threshold-Change-Scheme
 Threshold-Change-Scheme
 "No-Change" "Flat-Change" "Gradual-Change"
-0
+2
 
 CHOOSER
 1032
@@ -1064,7 +1070,7 @@ CHOOSER
 Initial-Foraging-Threshold
 Initial-Foraging-Threshold
 "75%" "Random" "50%"
-0
+2
 
 BUTTON
 1032
@@ -1105,9 +1111,9 @@ PENS
 
 MONITOR
 1115
-251
+264
 1182
-296
+309
 %Foragers
 Pct-Forager-Count
 1
@@ -1116,9 +1122,9 @@ Pct-Forager-Count
 
 MONITOR
 1115
-299
+312
 1181
-344
+357
 %Fpoints
 Pct-Forage-Point-by-Foragers
 1
