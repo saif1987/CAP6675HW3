@@ -16,6 +16,7 @@ turtles-own [
   own-forage-points
   normal-color
   brood-worker?
+  foraging-threshold
   brood-bucket
   forage-bucket
 ]
@@ -29,6 +30,9 @@ globals [
 
   brood-points
   forage-points
+
+  Pct-Forager-Count
+  Pct-Forage-Point-by-Foragers
 
   brood-colors
   forage-colors
@@ -117,7 +121,12 @@ to go  ;; forever button
   [ set chemical chemical * (100 - evaporation-rate) / 100  ;; slowly evaporate chemical
     recolor-patch ]
 
-  tick
+  if sum [own-forage-points] of turtles > 0
+  [ set Pct-Forager-Count 100.0 * (count turtles with [not brood-worker?]) / (count turtles)
+   set Pct-Forage-Point-by-Foragers 100 *  (sum [own-forage-points] of turtles with [not brood-worker?]) / (sum [own-forage-points] of turtles)
+  ]
+  if ticks <= 5000
+  [tick]
 end
 
 to set-buckets
@@ -166,10 +175,34 @@ to return-to-nest  ;; turtle procedure
     [ifelse brood-worker?
      [ set own-brood-forage-points  own-brood-forage-points - 1
        set own-brood-points own-brood-points + 1
-       set brood-points brood-points + 1]
+       set brood-points brood-points + 1
+       if Threshold-Change-Scheme !=  "No-Change"
+       [
+          ifelse Threshold-Change-Scheme =  "Flat-Change" ;;we change threshold by 3
+          [set foraging-threshold foraging-threshold - 3.0]
+          [set foraging-threshold foraging-threshold - (10.0 / (own-brood-points + own-forage-points))]
+          if foraging-threshold < 25.0
+          [set foraging-threshold 25.0]
+          if foraging-threshold > 75.0
+          [set foraging-threshold 75.0]
+       ]
+
+     ]
      [ set own-brood-forage-points own-brood-forage-points + 1
        set own-forage-points own-forage-points + 1
-       set forage-points forage-points + 1]]
+       set forage-points forage-points + 1
+       if (Threshold-Change-Scheme !=  "No-Change")
+       [
+          ifelse Threshold-Change-Scheme =  "Flat-Change" ;;we change threshold by 3
+          [set foraging-threshold foraging-threshold + 3.0]
+          [set foraging-threshold foraging-threshold + (10.0 / (own-brood-points + own-forage-points))]
+          if foraging-threshold < 25.0
+          [set foraging-threshold 25.0]
+          if foraging-threshold > 75.0
+          [set foraging-threshold 75.0]
+       ]
+
+     ]]
     brood-or-forage-worker
     move-to patch-at nest-entrance-center-x nest-entrance-center-y
     set color normal-color ]
@@ -198,15 +231,28 @@ to return-to-nest  ;; turtle procedure
 end
 
 to brood-or-forage-worker
-  set brood-worker? ((random-float 100.0) > (100 * (brood-points / (brood-points + forage-points))))
-
   if total-brood-buckets < 8
   [ set total-brood-buckets 8]
   if total-forage-buckets < 8
   [ set total-forage-buckets 8]
 
+  let change-to-brood? false
+  let change-to-forage? false
 
-  if brood-bucket > 0
+  ;;set brood-worker? ((random-float 100.0) > (100 * (brood-points / (brood-points + forage-points))))
+  let colony-need (100 * (brood-points / (brood-points + forage-points))) ;;foraging need
+  let brooding-threshold 100.0 - foraging-threshold
+  ifelse brood-worker? = true
+  [
+    if colony-need > foraging-threshold
+    [set change-to-forage? true]
+  ]
+  [
+    if colony-need < brooding-threshold
+    [set change-to-brood? true]
+  ]
+
+  if brood-bucket > 0 and change-to-forage? = true
   [ let col-for-bucket total-brood-buckets / 4
     let extra total-brood-buckets mod 4
     let bucket-color-i 0
@@ -218,11 +264,12 @@ to brood-or-forage-worker
       set bucket-color-i bucket-color-i + 1
     ]
     let stay-brood (max-resistance / brood-bucket * total-brood-buckets)
-    if random-float 100.0 < stay-brood
-    [ set brood-worker? true]]
+    if random-float 100.0 > stay-brood
+    [ set brood-worker? false]
+  ]
 
 
-  if forage-bucket > 0
+  if forage-bucket > 0 and change-to-brood? = true
   [ let col-for-bucket total-forage-buckets / 4
     let extra total-forage-buckets mod 4
     let bucket-color-i 0
@@ -234,8 +281,8 @@ to brood-or-forage-worker
       set bucket-color-i bucket-color-i + 1
     ]
     let stay-forage (max-resistance / forage-bucket * total-forage-buckets)
-    if random-float 100.0 < stay-forage
-    [ set brood-worker? false]]
+    if random-float 100.0 > stay-forage
+    [ set brood-worker? true]]
 end
 
 to look-for-food  ;; turtle procedure
@@ -294,7 +341,15 @@ to wiggle [move?] ;; turtle procedure
   [ let rand random 75
     set rand rand * one-of [-1 1]
     rt rand]
-  [ set previous-steps lput (patch-ahead 1) previous-steps
+  [
+    ifelse ( position (patch-ahead 1) previous-steps ) != false
+    [
+      let endpos (position (patch-ahead 1) previous-steps) + 1
+      set previous-steps (sublist previous-steps 0 endpos)
+    ]
+    [
+    set previous-steps lput (patch-ahead 1) previous-steps
+    ]
     if (length previous-steps >= max-steps)
     [ set color black]
     fd 1]
@@ -578,6 +633,37 @@ to init-turtles-from-file
   ]
 end
 
+;;Init Ants based on Threshold Mode
+to Init-Ants
+  clear-turtles
+  create-turtles population
+  [
+    set size 2         ;; easier to see
+    set normal-color gray + 4
+    set color normal-color
+    set brood-worker? random-float 100.0 > initial-forage-assignment-rate
+    let here-patch patch-here
+    reset-previous-steps
+    set cur-prev-step 0
+    move-to patch-at nest-entrance-center-x nest-entrance-center-y
+
+    ifelse Initial-Foraging-Threshold = "Random"
+    [
+      set foraging-threshold random-float 100.0
+    ]
+    [
+      ifelse Initial-Foraging-Threshold = "50%"
+      [
+        set foraging-threshold 50.0
+      ]
+      [
+        set foraging-threshold 75.0
+      ]
+    ]
+
+  ]
+end
+
 ; Copyright 1997 Uri Wilensky.
 ; See Info tab for full copyright and license.
 @#$#@#$#@
@@ -634,7 +720,7 @@ evaporation-rate
 evaporation-rate
 0.0
 99.0
-0.0
+7.0
 1.0
 1
 NIL
@@ -690,10 +776,10 @@ NIL
 1
 
 INPUTBOX
-800
-158
-955
-219
+776
+126
+832
+186
 nest-size
 35.0
 1
@@ -718,12 +804,12 @@ NIL
 1
 
 INPUTBOX
-800
-229
-956
-291
+838
+125
+898
+185
 max-steps
-10000.0
+500.0
 1
 0
 Number
@@ -821,10 +907,10 @@ NIL
 1
 
 INPUTBOX
-804
-307
-960
-367
+899
+125
+973
+185
 food-amount
 1000.0
 1
@@ -832,10 +918,10 @@ food-amount
 Number
 
 INPUTBOX
-805
-384
-961
-444
+847
+416
+922
+476
 return-speed
 1.0
 1
@@ -877,25 +963,25 @@ NIL
 1
 
 SLIDER
-792
-458
-1005
-491
+770
+481
+983
+514
 initial-forage-assignment-rate
 initial-forage-assignment-rate
 0
 100
-51.0
+50.0
 1
 1
 NIL
 HORIZONTAL
 
 PLOT
-991
-163
-1191
-313
+926
+361
+1186
+481
 # Ants in Brood vs Forage
 ticks
 Brood vs  Forage
@@ -904,17 +990,17 @@ Brood vs  Forage
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"brood" 1.0 0 -10402772 true "" "plot count turtles with [brood-worker?]"
+"brood" 1.0 0 -955883 true "" "plot count turtles with [brood-worker?]"
 "forage" 1.0 0 -13840069 true "" "plot count turtles with [not brood-worker?]"
 
 INPUTBOX
-983
-333
-1139
-393
+771
+418
+843
+478
 smell-range
 5.0
 1
@@ -922,19 +1008,97 @@ smell-range
 Number
 
 SLIDER
-990
-408
-1162
-441
+985
+481
+1157
+514
 max-resistance
 max-resistance
 0
 100
-42.0
+49.0
 1
 1
 NIL
 HORIZONTAL
+
+CHOOSER
+1031
+13
+1168
+58
+Threshold-Change-Scheme
+Threshold-Change-Scheme
+"No-Change" "Flat-Change" "Gradual-Change"
+0
+
+CHOOSER
+1032
+63
+1198
+108
+Initial-Foraging-Threshold
+Initial-Foraging-Threshold
+"75%" "Random" "50%"
+1
+
+BUTTON
+1032
+113
+1112
+146
+Init-Ants
+Init-Ants
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+PLOT
+778
+195
+1184
+355
+Forage point by Foragers
+NIL
+NIL
+0.0
+10.0
+0.0
+100.0
+true
+true
+"" ""
+PENS
+"%Forager" 1.0 0 -14439633 true "" "Plot Pct-Forager-Count"
+"%FPoints" 1.0 0 -817084 true "" "Plot Pct-Forage-Point-by-Foragers"
+
+MONITOR
+1115
+251
+1182
+296
+%Foragers
+Pct-Forager-Count
+1
+1
+11
+
+MONITOR
+1115
+299
+1181
+344
+%Fpoints
+Pct-Forage-Point-by-Foragers
+1
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
