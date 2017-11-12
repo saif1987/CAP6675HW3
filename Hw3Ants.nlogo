@@ -33,6 +33,7 @@ globals [
 
   Pct-Forager-Count
   Pct-Forage-Point-by-Foragers
+  Pct-Brood-Point-by-Foragers
 
   brood-colors
   forage-colors
@@ -126,10 +127,13 @@ to go  ;; forever button
   [ set chemical chemical * (100 - evaporation-rate) / 100  ;; slowly evaporate chemical
     recolor-patch ]
 
-  if sum [own-forage-points] of turtles > 0
-  [ set Pct-Forager-Count 100.0 * (count turtles with [not brood-worker?]) / (count turtles)
-   set Pct-Forage-Point-by-Foragers 100 *  (sum [own-forage-points] of turtles with [not brood-worker?]) / (sum [own-forage-points] of turtles)
-  ]
+
+   set Pct-Forager-Count 100.0 * (count turtles with [not brood-worker?]) / (count turtles)
+    if (sum [own-forage-points] of turtles) > 0
+    [set Pct-Forage-Point-by-Foragers 100 *  (sum [own-forage-points] of turtles with [not brood-worker?]) / (sum [own-forage-points] of turtles)]
+    if (sum [own-brood-points] of turtles) > 0
+    [set Pct-Brood-Point-by-Foragers 100 *  (sum [own-brood-points] of turtles with [not brood-worker?]) / (sum [own-brood-points] of turtles)]
+
   ifelse ticks <= 5000
   [tick]
   [stop]
@@ -1097,6 +1101,7 @@ true
 PENS
 "%Forager" 1.0 0 -14439633 true "" "Plot Pct-Forager-Count"
 "%FPoints" 1.0 0 -817084 true "" "Plot Pct-Forage-Point-by-Foragers"
+"%BPoints" 1.0 0 -13345367 true "" "Plot Pct-Brood-Point-by-Foragers"
 
 MONITOR
 1115
