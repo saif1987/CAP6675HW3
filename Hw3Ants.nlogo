@@ -546,7 +546,8 @@ to init-sim-from-file
   check-header
   init-globals
   init-patches-from-file
-  init-turtles-from-file
+  Init-Ants
+  ;;init-turtles-from-file
 end
 
 ;; called from load-scenario to check if file info from file matches current sim
@@ -1016,7 +1017,7 @@ max-resistance
 max-resistance
 0
 100
-49.0
+20.0
 1
 1
 NIL
@@ -1064,7 +1065,7 @@ PLOT
 195
 1184
 355
-Forage point by Foragers
+%number of Foragers and %Forage point by Foragers
 NIL
 NIL
 0.0
