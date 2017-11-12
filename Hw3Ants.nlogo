@@ -36,14 +36,19 @@ globals [
 
   brood-colors
   forage-colors
+  infile
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Setup procedures ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
+to setup-special
 
+end
 to setup
+  let temp infile
   clear-all
+  set temp infile
   set-default-shape turtles "bug"
   set nest-entrance-center-x 0
   set nest-entrance-center-y (min-pycor + (nest-size))
@@ -125,8 +130,9 @@ to go  ;; forever button
   [ set Pct-Forager-Count 100.0 * (count turtles with [not brood-worker?]) / (count turtles)
    set Pct-Forage-Point-by-Foragers 100 *  (sum [own-forage-points] of turtles with [not brood-worker?]) / (sum [own-forage-points] of turtles)
   ]
-  if ticks <= 5000
+  ifelse ticks <= 5000
   [tick]
+  [stop]
 end
 
 to set-buckets
@@ -531,13 +537,26 @@ end
 
 ;; loads patch info, turtle info, and user settings from file
 to load-scenario
-  let infile user-file
+  set infile user-file
+  let temp infile
   if (infile != false) [
     file-open infile
     init-sim-from-file
     file-close
   ]
+  set infile temp
 end
+
+to reload-scenario
+  let temp infile
+  if (infile != false) [
+    file-open infile
+    init-sim-from-file
+    file-close
+  ]
+  set infile temp
+end
+
 
 ;; called from load-scenario to initialize simulation from stuff from file
 to init-sim-from-file
@@ -1041,7 +1060,7 @@ CHOOSER
 Initial-Foraging-Threshold
 Initial-Foraging-Threshold
 "75%" "Random" "50%"
-1
+0
 
 BUTTON
 1032
@@ -1100,6 +1119,23 @@ Pct-Forage-Point-by-Foragers
 1
 1
 11
+
+BUTTON
+138
+389
+204
+422
+reload
+reload-scenario
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
